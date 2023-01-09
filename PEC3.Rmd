@@ -1,0 +1,383 @@
+---
+title: "PEC 3"
+author: "Pablo Ursúa y Oliver Mazariegos"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    number_sections: false
+    toc: true
+    fig_width: 8
+    fig_height: 6
+    theme: cosmo
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Enunciado
+
+El objetivo de la PEC es elaborar un análisis estadístico en R de un caso práctico con da-tos de obtención propia (pertenecientes a un determinado ámbito), lo más ajustado a la realidad. 
+
+# 1) (1 punto) Buscar un conjunto de datos relacionados con la Bioestadística o la Bio-informática. 
+
+Vamos a utilizar un conjunto de datos sobre pacientes de diabetes obtenido de Kaggle (<https://www.kaggle.com/datasets/cloudkaustav/pima-indian-diabetes-eda?resource=download>).
+
+
+
+# 2) (1 punto) Utilizando R, mostrar y explicar qué tipo de ficheros se han importado, las variables de estudio (estructura, tipo de datos, clasificación,...), así como todo aquello relevante para el estudio.
+
+El conjunto de datos de Pima Indian Diabetes EDA (Exploración de Datos) es un conjunto de datos que contiene información de pacientes de diabetes de la población india Pima. El conjunto de datos incluye 8 variables de entrada que son el resultado de una evaluación médica y una variable de salida que indica si el paciente tiene diabetes o no. Las 8 variables de entrada son:
+
+1.  edad: la edad del paciente en años.
+2.  embarazos: el número de veces que la mujer ha estado embarazada.
+3.  glucosa: nivel de glucosa en la sangre en una prueba de 2 horas en una prueba oral de tolerancia a la glucosa.
+4.  presión arterial: presión arterial diastólica (mm Hg).
+5.  pliegue de piel gruesa: pliegue de piel gruesa del tríceps (mm).
+6.  insulina: nivel de insulina en suero en una muestra de sangre de 2 horas (mu U / ml).
+7.  índice de masa corporal: peso en kg/(altura en m)$^2$.
+8.  función de pedigree de diabetes: el valor de esta variable se calcula a partir de los antecedentes familiares de diabetes y se considera un factor de riesgo para desarrollar diabetes.
+9.  La variable de salida es un valor binario: 1 indica que el paciente tiene diabetes, mientras que 0 indica que no lo tiene. 
+
+Este conjunto de datos se ha utilizado a menudo como un problema de clasificación para evaluar el rendimiento de los modelos de machine learning.
+
+```{r}
+# Carga de librerias
+pacman::p_load(corrplot,
+                skimr,
+                ggplot2,
+                dplyr,
+                sqldf,
+                RSQLite)
+# lectura de datos
+diabetes = read.csv("data/diabetes.csv")
+```
+
+```{r}
+# Resumen general de las variables
+skim(diabetes)
+```
+
+Con el resumen anterior podemos observar que en el fichero `diabetes.csv` se tiene registro de 768 individuos donde en ninguna de las 9 variables mencionadas en la sección 1 presenta missing values o `NA`. Las 9 variables son variables númericas, aunque la única variable categorica es `outcome` donde 0 indica que el paciente no tiene diabetes y 1 que si.
+
+
+# 3) (2 puntos) Con la Sección 2 de la PEC1 como base, elaborar y analizar una serie de cuestiones, que ayuden a explorar y a familiarizarse mejor con los datos de estudio. Además, en algunos casos, puede utilizarse la definición de funciones y el lenguaje SQL estudiado en el LAB3.
+Aquí hay algunas cuestiones que se pueden  explorar y analizar con el dataset de Pima Indian Diabetes EDA:
+
+## 1.  **¿Cuántos pacientes hay en el conjunto de datos? ¿Cuántos de ellos tienen diabetes?**
+
+```{r}
+#pacientes totales del estudio
+pacientes = nrow(diabetes)
+pacientes
+sqldf("select count(*) 
+      from diabetes")
+
+#pacientes con diabetes
+diabeticos= nrow(diabetes[diabetes$Outcome == 1, ])
+diabeticos
+sqldf("select count(*) 
+      from diabetes
+      where Outcome==1")
+
+#pacientes sin diabetes
+no_diabeticos = pacientes-diabeticos
+no_diabeticos
+sqldf("select count(*) 
+      from diabetes
+      where Outcome==0")
+```
+
+## 2.  **¿Cuál es la edad media de los pacientes? ¿Y la desviación estándar? ¿Cómo varía la edad entre pacientes con y sin diabetes?**
+
+```{r}
+#Media y desviacion de la edad de los pacientes
+mean(diabetes$Age)
+sqldf("select avg(Age),STDEV(Age) 
+      from diabetes")
+sd(diabetes$Age)
+
+#diferencia entre diabeticos o no 
+años_diabeticos=mean(diabetes[diabetes$Outcome == 1, "Age"])
+sqldf("select avg(Age)
+      from diabetes
+      where Outcome == 1")
+años_no_diabeticos=mean(diabetes[diabetes$Outcome == 0, "Age"])
+sqldf("select avg(Age)
+      from diabetes
+      where Outcome == 0")
+
+#diferencia
+años_diabeticos-años_no_diabeticos  
+
+```
+
+## 3.  **¿Cuál es el promedio de nivel de glucosa en en una muestra de sangre de 2 horas para los pacientes con diabetes? ¿Y para los pacientes sin diabetes?**
+
+```{r}
+#media y desviacion estandar de nivel de glucosa en diabeticos
+mean(diabetes[diabetes$Outcome == 1, "Glucose"])
+sd(diabetes[diabetes$Outcome == 1, "Glucose"])
+#media y desviacion estandar de nivel de glucosa en sanos
+mean(diabetes[diabetes$Outcome == 0, "Glucose"])
+sd(diabetes[diabetes$Outcome == 0, "Glucose"])
+
+#podemos observar que los resultados son lógicos ya que un paciente con diabetes siempre va a tender a tener la glucosa en rangos mas amplios (o muy alta o muy baja) teniendo en cuenta que la gente con diabetes también puede tener el nivel de glucosa en sangre correcto(80-120)
+```
+
+## 4.  **¿Cuál es la correlación entre la edad y el nivel de insulina en suero en una muestra de sangre de 2 horas? ¿Y entre la edad y el índice de masa corporal?**
+
+```{r}
+cor(diabetes$Age, diabetes$Insulin)
+
+cor(diabetes$Age, diabetes$BMI)
+
+
+
+```
+
+Los resultados muestran que la correlación entre la edad y el índice de masa corporal es baja y negativa, con un valor de -0.04216295. Esto significa que hay una relación débil y negativa entre estas dos variables: a medida que la edad aumenta, el índice de masa corporal disminuye ligeramente. Sin embargo, el valor de correlación es bastante cercano a 0, lo que indica que la relación entre estas dos variables no es muy fuerte. Es posible que haya otras variables que estén influyendo de manera más significativa en el índice de masa corporal.
+
+El segundo resultado , con un valor de 0.03624187, es un poco menor que el primer resultado y también indica una correlación débil entre la edad y el índice de masa corporal.
+
+## 5.  **¿Cuál es el porcentaje de pacientes con diabetes que tienen un nivel de insulina en suero en una muestra de sangre de 2 horas por encima del percentil 75? ¿Y cuál es el porcentaje de pacientes sin diabetes que tienen un nivel de insulina por encima del percentil 75?**
+
+```{r}
+#porcentaje de pacientes con diabetes que tienen un nivel de insulina en una muestra de sangre de 2 horas por encima del percentil 75
+insulina_75 = quantile(diabetes$Insulin, 0.75)
+porcentaje_diabeticos_75=nrow(diabetes[diabetes$Outcome == 1 & diabetes$Insulin > insulina_75, ]) / nrow(diabetes[diabetes$Outcome == 1, ])
+
+porcentaje_diabeticos_75
+
+#porcentaje de pacientes sin diabetes que tienen un nivel de insulina en una muestra de sangre de 2 horas por encima del percentil 75
+
+porcentaje_sanos_75=nrow(diabetes[diabetes$Outcome == 0 & diabetes$Insulin > insulina_75, ]) / nrow(diabetes[diabetes$Outcome == 0, ])
+
+porcentaje_sanos_75
+
+
+```
+
+Los porcentajes indican que el 36.19% de los pacientes sin diabetes tienen un nivel de insulina en una muestra de sangre de 2 horas por encima del percentil 75. Esto significa que más de un tercio de los pacientes sin diabetes tienen niveles de insulina por encima de lo que se considera normal en una muestra de sangre de 2 horas.
+
+El segundo porcentaje, del 19%, indica que el 19% de los pacientes con diabetes tienen un nivel de insulina por encima del percentil 75. Esto significa que menos de una quinta parte de los pacientes con diabetes tienen niveles de insulina por encima de lo que se considera normal en una muestra de sangre de 2 horas.
+
+En general, estos resultados sugieren que los pacientes sin diabetes tienen niveles más altos de insulina en una muestra de sangre de 2 horas que los pacientes con diabetes. Sin embargo, es importante tener en cuenta que estos resultados se basan en una única muestra de datos y pueden no ser representativos de la población en general.
+
+# 4) (1 punto) Realizar un análisis descriptivo de los datos. El análisis debe incluir (tal y como aparece en la Sección 3 de la PEC1) un resumen paramétrico de los datos y su representación gráfica, que mejor defina y complemente cada una de dichas variables.
+
+Exploremos la distribución de los datos de manera gráfica para familiarizarnos mejor con la base de datos.
+
+```{r}
+par(mfrow = c(2, 2))
+
+#Boxplot para Pregnancies
+boxplot(diabetes$Pregnancies, main = "Cantidad de embarazos")
+#Boxplot para Glucose
+boxplot(diabetes$Glucose, main = "Glucosa")
+#Boxplot para BloodPressure
+boxplot(diabetes$BloodPressure, main = "Presión en sangre")
+#Boxplot para SkinThickness
+boxplot(diabetes$SkinThickness, main = "Pliegue")
+```
+
+Con ayuda de los gráficos podemos observar que en la base de datos la mayoría de mujeres ha tenido entre 1 y 5 embarazos, con una media de 3 aproximadamente, aunque hay mujeres que han tenido más de 10 embarazos. 
+
+Con la glucosa se ve un gráfico de caja y bigote muy distribuido homogeneamente con un único dato atípico el cual podría ser un error en la digitación. Los valores de Glucosa van desde 50 hasta 200.
+
+Para la presión en sangre se observa que los datos estan muy agrupados entre 40 y 100 aunque se observan 6 datos atípicos que exceden estos límites.
+
+Para el Pliegue, podemos ver que el tamaño de los pliegues estan mú agrupador entre 0 y 40 con una media de 20. Aunque se observa un solo dato atipico de aproximadamente 100. este dato podría ser algun error de digitación de datos o de mala medición.
+
+
+```{r}
+par(mfrow = c(2, 2))
+#Boxplot para Insulin
+boxplot(diabetes$Insulin, main = "Nivel de insulina")
+#Boxplot para BMI
+boxplot(diabetes$BMI, main = "Indice de masa corporal")
+#Boxplot para DiabetesPedigreeFunction
+boxplot(diabetes$DiabetesPedigreeFunction, main = "Pedigri de diabetes")
+#Boxplot para Age
+boxplot(diabetes$Age, main = "Edad")
+par(mfrow = c(1, 1))
+```
+
+Para los niveles de insulina hay un fuerte sesgo por valores bajos de insulina. Estos valores van desde 0 a 200 y todos los demas son considerados atípicos. Esta variable cuenta con múltiples datos atípicos que llegan hasta 800.
+
+Para el indice de masa corporal se puede observar que están bastante bien agrupados entre 20 y 50 con una media de 30. Se observan solo unos cuantos valores atípicos para esta variable.
+
+Para el pedigri de diabetes que es una función que considera los antecedentes familiares para calcular un factor de riesgo de desarrollar diabetes. En nuestra base de datos la mayoría tienen un factor de riesgo entre 0 y 1 con un promedio poco debajo de 0.5. Se pueden ver múltiples datos atipicos con factor de riesgo que en ocasiones supera 2.0.
+
+Para la edad tenemos una población bastante joven con una media de 30 años aunque hay mujeres mayores a los 70.
+
+```{r}
+barplot(table(diabetes$Outcome), main='Outcome')
+```
+
+La variable `Outcome` nos dice si la persona desarrollo o no diabetes. Siendo 0 que no la desarrollo y 1 que si. Podemos observar que tenemos casi el doble de pacientes que no desarrollaron la enfermedad siendo estos 500 aproximadamente y dejando al resto (250 aproximadamente) como pacientes que si desarrollaron la enfermedad.
+
+
+## En este conjunto de datos hay datos faltantes ¿Cuántos valores faltantes hay para cada variable?
+
+```{r}
+colSums(is.na(diabetes))
+```
+
+Podemos confirmar lo visto en el resumen general de la base de datos que todos los datos están completos y que no hay ningún `NA` en la base de datos.
+
+## Diagrama bivariante (Glucosa ~ Insulina).
+
+```{r}
+plot(diabetes$Glucose, diabetes$Insulin, xlab = "Glucosa", ylab = "Insulina")
+```
+
+En el gráfico anterior se puede ver que hay una tendencia líneal entre estas dos variables. Pero se ve una fila de puntos de cero en la Insulina. Esto puede significar que de estas mujeres no se tomaron medidas de insulina, contemos en cuantos registros la insulina es 0.
+
+```{r}
+nrow(diabetes[diabetes$Insulin == 0, ])
+```
+
+Existen 374 registros con niveles de insulina igual a 0. Para esto podríamos suponer que de estas personas no se les hizo el test de 2 horas de la insulina.
+
+Volvamos a graficar `Glucosa ~ Insulina` sin los registros que tienen 0 en `Insulina`.
+
+```{r}
+diabetes_filtrado = diabetes[diabetes$Insulin != 0, ]
+plot(diabetes_filtrado$Glucose, diabetes_filtrado$Insulin, xlab = "Glucosa", ylab = "Insulina")
+```
+
+Aho se ve con mejor claridad una posible relación. Aunque entre más glucosa se encuentra, la variacion en la insulina aumenta.
+
+
+## Tablas de frecuencias relativas y absolutas de "Outcome" (presencia de la enfermedad)
+
+```{r}
+table(diabetes$Outcome)
+prop.table(table(diabetes$Outcome))
+```
+
+Como se sospechaba en la gráfica de barras de `Outcome` presentada previamente, se encuentran 500 (65%) registros de personas sin diabetes y 268 (35%) con la enfermedad.
+
+Debido a que se detecto previamente el problema con la Glucosa ~ Insulina, quisiera saber cuantas de estas personas con Insulina = 0 son personas con la enfermedad y cuantas sin ellas.
+
+**En las siguientes tablas de frecuencias, la fila TRUE hace referencias a aquellas que tienen la Insulina = 0**
+
+```{r}
+table(diabetes$Insulin == 0, diabetes$Outcome)
+prop.table(table(diabetes$Insulin == 0, diabetes$Outcome))
+```
+
+Con esta información podemos ver que la distribución de pacientes en la base de datos que no tienen una medida de Insulina están distribuidas homogeneamente. Podríamos considerar en remover estos casos y tomarlos como datos faltantes para que nuestros análisis sean más exactos.
+
+Asi como la insulina presenta *ceros*, en el diagrama de caja y bigote de pliegue de piel se ve la existencia de ceros. Por fines exploratorios veremos a cuantos pacientes tienen esta medida igual a 0 y como se distribuyen con la variable Outcome.
+
+**En las siguientes tablas de frecuencias, la fila TRUE hace referencias a aquellas que tienen el tamaño del Pliegue = 0**
+
+```{r}
+table(diabetes$SkinThickness == 0, diabetes$Outcome)
+prop.table(table(diabetes$SkinThickness == 0, diabetes$Outcome))
+```
+
+Podemos observar que son menos los registros a los que les falta la medicion de pliegue.
+
+Como parte final, vere en que proporción los registros no tienen alguna de las dos variables con valor 0.
+
+**En las siguientes tablas de frecuencias, la fila TRUE hace referencias a aquellas que tienen la Insulina = 0 o el Pliegue = 0**
+
+```{r}
+table(diabetes$SkinThickness == 0 | diabetes$Insulin == 0, diabetes$Outcome)
+prop.table(table(diabetes$SkinThickness == 0 | diabetes$Insulin == 0, diabetes$Outcome))
+```
+
+Se puede ver que esta tabla es identica a la que se hizo de los registros que tenian Insulina = 0. Será de mucha importancia remover estos datos ya que podríamos considerarlos como registros con datos faltantes.
+
+Veamos como se distribuyen ahora estas dos variables sin tomar en cuenta los registros que tienen 0 en la medida de insulina y de pliegue.
+
+```{r}
+par(mfrow = c(1, 2))
+#Boxplot para Insulin
+boxplot(diabetes[diabetes$Insulin != 0, 'Insulin'], main = "Nivel de insulina")
+#Boxplot para SkinThickness
+boxplot(diabetes[diabetes$SkinThickness != 0, 'SkinThickness'], main = "Pliegue")
+```
+
+Se puede ver que para la caja de nivel de insulina, ahora los datos ya no estan bastante agrupados en cero, aunque se siguen encontrando datos atípicos donde el nivel de insulina es superior a 375.
+
+Para el Pliegue se puede ver que se tiene una mejor distribucion. Ahora ya no se tienen los datos agrupados cerca del 0, aunque ahora se detectaron 2 datos atípico más que cuando no se consideraba el filtro a los datos.
+
+Estas observaciones anteriores son de importancia debido a que se estaban considerando los valores 0 como valores reales, cuando realmente podrían ser datos faltantes los cuales afectarian negativamente nuestros analisis de correlación o de regresión.
+
+## Limpieza de Datos
+
+Existen varios registro con `0` en variables donde un 0 no tiene sentido. Por ejemplo en la variable Glucosa, Presion Sanguinea, Pliegue, Nivel de Insulina e Indice de masa coporal. Para seguir con nuestros analisis es importante considerar que estos *ceros* realmente son datos faltantes y filtrarlos.
+
+```{r}
+diabetes_filtrado = diabetes %>%
+    filter(
+        Glucose != 0,
+        BloodPressure != 0,
+        SkinThickness != 0,
+        Insulin != 0,
+        BMI != 0
+    )
+
+# Cantidad de registros de la base de datos filtrada
+nrow(diabetes_filtrado)
+# Representatividad de personas con diabetes y sin ella
+table(diabetes_filtrado$Outcome)
+prop.table(table(diabetes_filtrado$Outcome))
+```
+
+Aplicando la limpieza de datos nos hemos quedado con `r nrow(diabetes_filtrado)` registros y en la tabla anterior podemos observar que la distribución porcentual de pacientes con diabetes y sin la enfermedad es similar a la original.
+
+# 5) (1,5 puntos) Complementando el apartado anterior, elaborar un análisis de regresión de dos conjuntos de variables (LAB2). La elección de las variables, los resultados, así como su relación deben de estar correctamente justificada.
+
+Calculamos la matriz de correlación del conjunto de datos y la representación gráfica que muestre la relación de todas las variables.
+
+## Correlación de la base de datos sin limpieza
+```{r}
+corr = cor(diabetes)
+corrplot(corr,method = "number")
+```
+
+## Correlación de la base de datos limpia
+
+```{r}
+corr = cor(diabetes_filtrado)
+corrplot(corr,method = "number")
+```
+
+Para realizar un análisis de regresión de dos conjuntos de variables en el conjunto de datos proporcionado, podemos elegir la edad y el índice de masa corporal como variables independientes y el nivel de glucosa en suero en una muestra de sangre de 2 horas como variable dependiente. Según la matriz de correlación, la edad y el índice de masa corporal tienen una correlación moderada y positiva con el nivel de glucosa en suero en una muestra de sangre de 2 horas, lo que sugiere que estas variables podrían tener un efecto significativo en el nivel de glucosa.
+
+```{r}
+model <- lm(Glucose ~ Age + BMI, data = diabetes)
+summary(model)
+```
+
+El resultado del modelo de regresión lineal muestra que existe una relación significativa entre el nivel de glucosa en una muestra de sangre de 2 horas y la edad y el índice de masa corporal. Los coeficientes de regresión muestran que, todo lo demás siendo igual, un aumento en la edad y el índice de masa corporal se asocia con un aumento en el nivel de glucosa.
+
+El valor de R cuadrado del modelo es de 0.1142, lo que significa que el modelo explica el 11.42% de la variabilidad del nivel de glucosa. El valor de ajustado de R cuadrado es de 0.1119, lo que significa que el modelo explica el 11.19% de la variabilidad del nivel de glucosa una vez se tienen en cuenta el número de variables independientes y el tamaño de la muestra.
+
+El F-estadístico del modelo es de 49.33 y el p-valor es menor que 0.001, lo que indica que el modelo es estadísticamente significativo. Esto sugiere que hay una relación significativa entre las variables independientes y la variable dependiente.
+
+En general, este modelo sugiere que la edad y el índice de masa corporal son factores que pueden tener un impacto en el nivel de glucosa en una muestra de sangre de 2 horas. No obstante, es importante tener en cuenta que este modelo solo explica una pequeña parte de la variabilidad del nivel de glucosa y que hay muchos otros factores que podrían afectar a este nivel.
+
+# 6) (1 punto) Realizar, a partir de los conceptos trabajados en el LAB4 y la PEC2, un estudio probabilístico (a elección propia) de al menos 3 de las variables, que ayude a esclarecer cuestiones de relevancia que se plantean en los ámbitos de acción es-tudiados.
+
+Utilizaremos los niveles de Glucosa para este inciso y asumiremos que sigue una distribución normal debido a que tenemos más de 50 registros y podemos aplicar el teorema del limite central.
+
+## Distribución de los datos
+```{r}
+mu = mean(diabetes_filtrado$Glucose)
+s = sd(diabetes_filtrado$Glucose)
+hist(diabetes_filtrado$Glucose, prob = TRUE, xlab='Glucosa', ylab='Probabilidad', main='Histograma de Glucosa')
+curve(dnorm(x, mean = mu, sd = s), from = min(diabetes_filtrado$Glucose) - 30, to = max(diabetes_filtrado$Glucose) + 30, add = TRUE)
+```
+
+
+
+# 7) (1,5 puntos) Complementando el apartado anterior, elaborar un análisis ANOVA de dos conjuntos de variables (LAB5). La elección de las variables, los resultados, así como su relación deben de estar correctamente justificada. Además, realizar una prueba clúster de las variables, y si existe un fuerte agrupamiento, elaborar un dendograma (LAB5).
+
+# 8) (1 punto) A partir de los datos de origen y el estudio realizado (incluyendo todos los puntos anteriores), presentar un apartado de conclusiones. Esta sección debe incluir un resumen de los principales resultados obtenidos en apartados anteriores, que ayuden al lector a comprender el ámbito de estudio. Además, se valorará posi-tivamente la coherencia de resultados y las justificaciones presentadas.
