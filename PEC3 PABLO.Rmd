@@ -58,6 +58,16 @@ diabetes = read.csv("data/diabetes.csv")
     no_diabeticos = pacientes-diabeticos
     no_diabeticos
 
+    #con sql
+    library(sqldf)
+    library(RSQLite)
+    library(dplyr)
+
+    sqldf("select count(*) 
+          from diabetes")
+    sqldf("select count(*) 
+          from diabetes
+          where Outcome==1")
 
 
     ```
@@ -76,6 +86,23 @@ diabetes = read.csv("data/diabetes.csv")
     #diferencia
     años_diabeticos-años_no_diabeticos  
 
+    #sql
+    library(sqldf)
+    library(RSQLite)
+    library(dplyr)
+
+    sqldf("select avg(Age),STDEV(Age) 
+          from diabetes")
+    sqldf("select avg(Age)
+          from diabetes
+          where Outcome == 1")
+    sqldf("select avg(Age)
+          from diabetes
+          where Outcome == 0")
+
+
+
+
     ```
 
 3.  **¿Cuál es el promedio de nivel de glucosa en en una muestra de sangre de 2 horas para los pacientes con diabetes? ¿Y para los pacientes sin diabetes?**
@@ -89,6 +116,8 @@ diabetes = read.csv("data/diabetes.csv")
     sd(diabetes[diabetes$Outcome == 0, "Glucose"])
 
     #podemos observar que los resultados son lógicos ya que un paciente con diabetes siempre va a tender a tener la glucosa en rangos mas amplios (o muy alta o muy baja) teniendo en cuenta que la gente con diabetes también puede tener el nivel de glucosa en sangre correcto(80-120)
+
+    #Repetiriamos lo mismo que hemos hecho anteriormente con sql pero lo dejamos así por sencillez
     ```
 
 4.  **¿Cuál es la correlación entre la edad y el nivel de insulina en suero en una muestra de sangre de 2 horas? ¿Y entre la edad y el índice de masa corporal?**
@@ -144,7 +173,7 @@ corrplot(corr,method = "number")
 Para realizar un análisis de regresión de dos conjuntos de variables en el conjunto de datos proporcionado, podemos elegir la edad y el índice de masa corporal como variables independientes y el nivel de glucosa en suero en una muestra de sangre de 2 horas como variable dependiente. Según la matriz de correlación, la edad y el índice de masa corporal tienen una correlación moderada y positiva con el nivel de glucosa en suero en una muestra de sangre de 2 horas, lo que sugiere que estas variables podrían tener un efecto significativo en el nivel de glucosa.
 
 ```{r}
-model <- lm(Glucose ~ Age + BMI, data = diabetes)
+model = lm(Glucose ~ Age + BMI, data = diabetes)
 summary(model)
 ```
 
@@ -155,3 +184,41 @@ El valor de R cuadrado del modelo es de 0.1142, lo que significa que el modelo e
 El F-estadístico del modelo es de 49.33 y el p-valor es menor que 0.001, lo que indica que el modelo es estadísticamente significativo. Esto sugiere que hay una relación significativa entre las variables independientes y la variable dependiente.
 
 En general, este modelo sugiere que la edad y el índice de masa corporal son factores que pueden tener un impacto en el nivel de glucosa en una muestra de sangre de 2 horas. No obstante, es importante tener en cuenta que este modelo solo explica una pequeña parte de la variabilidad del nivel de glucosa y que hay muchos otros factores que podrían afectar a este nivel.
+
+## 7)
+
+Utilizaré las variables del apartado 5 para realizar el análisis ANOVA ya que son las mas prometedoras de las que tienen un sentido lógico e interpretable.
+
+```{r}
+model = aov(Glucose ~ Age + BMI, data = diabetes)
+summary(model)
+
+```
+
+Los resultados del ANOVA muestran que tanto la edad como el índice de masa corporal (BMI) tienen un efecto significativo en la variable dependiente (en este caso, GLucose). Esto se deduce de los valores p muy pequeños y de los asteriscos junto a las variables "Age" y "BMI" en la columna "Pr(\>F)".
+
+El valor F en sí mismo también es significativo, lo que indica que hay una diferencia significativa entre los promedios de la variable dependiente para los diferentes grupos de edad y BMI.
+
+Esto significa que, en general, la edad y el BMI tienen un impacto en la variable dependiente. Sin embargo, es importante tener en cuenta que el ANOVA solo mide la influencia de las variables independientes en conjunto, no la influencia individual de cada variable. Por lo tanto, es posible que necesites realizar más análisis para determinar cuál de estas variables es más importante para el modelo.
+
+Para ver si existe un fuerte agrupamiento entre las variables, puedomos usar ***hclust*** para generar un dendrograma. Esto ayudará a visualizar cómo están relacionadas las variables y si existen subgrupos o clústeres evidentes.
+
+Para generar un dendrograma, primero necesitamos calcular la distancia entre las variables. Lo podemos hacer con la función ***dist***:
+
+```{r}
+distance = dist(diabetes[, c("Age", "BMI", "Glucose")])
+cluster = hclust(distance)
+summary(cluster)
+plot(cluster)
+
+```
+
+Los resultados del análisis de clustering muestran que se han agrupado los datos en 767 clusters basándose en la distancia entre ellos. La columna "height" muestra la distancia entre los clusters, lo que nos permite determinar qué tan lejos están unos de otros. La columna "order" muestra el orden en el que se han fusionado los clusters a medida que se ha construido el dendrograma.
+
+
+
+
+
+
+
+
