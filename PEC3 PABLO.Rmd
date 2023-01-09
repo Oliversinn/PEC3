@@ -1,0 +1,157 @@
+---
+title: "PEC3 PABLO"
+author: "Pablo Ursua"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1)
+
+Vamos a utilizar un conjunto de datos sobre pacientes de diabetes obtenido de Kaggle (<https://www.kaggle.com/datasets/cloudkaustav/pima-indian-diabetes-eda?resource=download>).
+
+El conjunto de datos de Pima Indian Diabetes EDA (Exploración de Datos) es un conjunto de datos que contiene información de pacientes de diabetes de la población india Pima. El conjunto de datos incluye 8 variables de entrada que son el resultado de una evaluación médica y una variable de salida que indica si el paciente tiene diabetes o no. Las 8 variables de entrada son:
+
+1.  edad: la edad del paciente en años.
+
+2.  embarazos: el número de veces que la mujer ha estado embarazada.
+
+3.  glucosa: nivel de glucosa en la sangre en una prueba de 2 horas en una prueba oral de tolerancia a la glucosa.
+
+4.  presión arterial: presión arterial diastólica (mm Hg).
+
+5.  pliegue de piel gruesa: pliegue de piel gruesa del tríceps (mm).
+
+6.  insulina: nivel de insulina en suero en una muestra de sangre de 2 horas (mu U / ml).
+
+7.  índice de masa corporal: peso en kg/(altura en m)\^2.
+
+8.  función de pedigree de diabetes: el valor de esta variable se calcula a partir de los antecedentes familiares de diabetes y se considera un factor de riesgo para desarrollar diabetes.
+
+La variable de salida es un valor binario: 1 indica que el paciente tiene diabetes, mientras que 0 indica que no lo tiene. Este conjunto de datos se ha utilizado a menudo como un problema de clasificación para evaluar el rendimiento de los modelos de machine learning.
+
+## 2)
+
+```{r}
+diabetes = read.csv("data/diabetes.csv")
+```
+
+## 3)
+
+### Aquí hay algunas cuestiones que se pueden  explorar y analizar con el dataset de Pima Indian Diabetes EDA:
+
+1.  **¿Cuántos pacientes hay en el conjunto de datos? ¿Cuántos de ellos tienen diabetes?**
+
+    ```{r}
+    #pacientes totales del estudio
+    pacientes = nrow(diabetes)
+    pacientes
+
+    #pacientes con diabetes
+    diabeticos= nrow(diabetes[diabetes$Outcome == 1, ])
+    diabeticos
+
+    #pacientes sin diabetes
+    no_diabeticos = pacientes-diabeticos
+    no_diabeticos
+
+
+
+    ```
+
+2.  **¿Cuál es la edad media de los pacientes? ¿Y la desviación estándar? ¿Cómo varía la edad entre pacientes con y sin diabetes?**
+
+    ```{r}
+    #Media y desviacion de la edad de los pacientes
+    mean(diabetes$Age)
+    sd(diabetes$Age)
+
+    #diferencia entre diabeticos o no 
+    años_diabeticos=mean(diabetes[diabetes$Outcome == 1, "Age"])
+    años_no_diabeticos=mean(diabetes[diabetes$Outcome == 0, "Age"])
+
+    #diferencia
+    años_diabeticos-años_no_diabeticos  
+
+    ```
+
+3.  **¿Cuál es el promedio de nivel de glucosa en en una muestra de sangre de 2 horas para los pacientes con diabetes? ¿Y para los pacientes sin diabetes?**
+
+    ```{r}
+    #media y desviacion estandar de nivel de glucosa en diabeticos
+    mean(diabetes[diabetes$Outcome == 1, "Glucose"])
+    sd(diabetes[diabetes$Outcome == 1, "Glucose"])
+    #media y desviacion estandar de nivel de glucosa en sanos
+    mean(diabetes[diabetes$Outcome == 0, "Glucose"])
+    sd(diabetes[diabetes$Outcome == 0, "Glucose"])
+
+    #podemos observar que los resultados son lógicos ya que un paciente con diabetes siempre va a tender a tener la glucosa en rangos mas amplios (o muy alta o muy baja) teniendo en cuenta que la gente con diabetes también puede tener el nivel de glucosa en sangre correcto(80-120)
+    ```
+
+4.  **¿Cuál es la correlación entre la edad y el nivel de insulina en suero en una muestra de sangre de 2 horas? ¿Y entre la edad y el índice de masa corporal?**
+
+    ```{r}
+    cor(diabetes$Age, diabetes$Insulin)
+
+    cor(diabetes$Age, diabetes$BMI)
+
+
+
+    ```
+
+    Los resultados muestran que la correlación entre la edad y el índice de masa corporal es baja y negativa, con un valor de -0.04216295. Esto significa que hay una relación débil y negativa entre estas dos variables: a medida que la edad aumenta, el índice de masa corporal disminuye ligeramente. Sin embargo, el valor de correlación es bastante cercano a 0, lo que indica que la relación entre estas dos variables no es muy fuerte. Es posible que haya otras variables que estén influyendo de manera más significativa en el índice de masa corporal.
+
+    El segundo resultado , con un valor de 0.03624187, es un poco menor que el primer resultado y también indica una correlación débil entre la edad y el índice de masa corporal.
+
+5.  **¿Cuál es el porcentaje de pacientes con diabetes que tienen un nivel de insulina en suero en una muestra de sangre de 2 horas por encima del percentil 75? ¿Y cuál es el porcentaje de pacientes sin diabetes que tienen un nivel de insulina por encima del percentil 75?**
+
+    ```{r}
+    #porcentaje de pacientes con diabetes que tienen un nivel de insulina en una muestra de sangre de 2 horas por encima del percentil 75
+    insulina_75 = quantile(diabetes$Insulin, 0.75)
+    porcentaje_diabeticos_75=nrow(diabetes[diabetes$Outcome == 1 & diabetes$Insulin > insulina_75, ]) / nrow(diabetes[diabetes$Outcome == 1, ])
+
+    porcentaje_diabeticos_75
+
+    #porcentaje de pacientes sin diabetes que tienen un nivel de insulina en una muestra de sangre de 2 horas por encima del percentil 75
+
+    porcentaje_sanos_75=nrow(diabetes[diabetes$Outcome == 0 & diabetes$Insulin > insulina_75, ]) / nrow(diabetes[diabetes$Outcome == 0, ])
+
+    porcentaje_sanos_75
+
+
+    ```
+
+    Los porcentajes indican que el 36.19% de los pacientes sin diabetes tienen un nivel de insulina en una muestra de sangre de 2 horas por encima del percentil 75. Esto significa que más de un tercio de los pacientes sin diabetes tienen niveles de insulina por encima de lo que se considera normal en una muestra de sangre de 2 horas.
+
+    El segundo porcentaje, del 19%, indica que el 19% de los pacientes con diabetes tienen un nivel de insulina por encima del percentil 75. Esto significa que menos de una quinta parte de los pacientes con diabetes tienen niveles de insulina por encima de lo que se considera normal en una muestra de sangre de 2 horas.
+
+    En general, estos resultados sugieren que los pacientes sin diabetes tienen niveles más altos de insulina en una muestra de sangre de 2 horas que los pacientes con diabetes. Sin embargo, es importante tener en cuenta que estos resultados se basan en una única muestra de datos y pueden no ser representativos de la población en general.
+
+## 5)
+
+Calculamos la matriz de correlación del conjunto de datos y la representación gráfica que muestre la relación de todas las variables.
+
+```{r}
+corr = cor(diabetes)
+print(corr)
+library(corrplot)
+corrplot(corr,method = "number")
+```
+
+Para realizar un análisis de regresión de dos conjuntos de variables en el conjunto de datos proporcionado, podemos elegir la edad y el índice de masa corporal como variables independientes y el nivel de glucosa en suero en una muestra de sangre de 2 horas como variable dependiente. Según la matriz de correlación, la edad y el índice de masa corporal tienen una correlación moderada y positiva con el nivel de glucosa en suero en una muestra de sangre de 2 horas, lo que sugiere que estas variables podrían tener un efecto significativo en el nivel de glucosa.
+
+```{r}
+model <- lm(Glucose ~ Age + BMI, data = diabetes)
+summary(model)
+```
+
+El resultado del modelo de regresión lineal muestra que existe una relación significativa entre el nivel de glucosa en una muestra de sangre de 2 horas y la edad y el índice de masa corporal. Los coeficientes de regresión muestran que, todo lo demás siendo igual, un aumento en la edad y el índice de masa corporal se asocia con un aumento en el nivel de glucosa.
+
+El valor de R cuadrado del modelo es de 0.1142, lo que significa que el modelo explica el 11.42% de la variabilidad del nivel de glucosa. El valor de ajustado de R cuadrado es de 0.1119, lo que significa que el modelo explica el 11.19% de la variabilidad del nivel de glucosa una vez se tienen en cuenta el número de variables independientes y el tamaño de la muestra.
+
+El F-estadístico del modelo es de 49.33 y el p-valor es menor que 0.001, lo que indica que el modelo es estadísticamente significativo. Esto sugiere que hay una relación significativa entre las variables independientes y la variable dependiente.
+
+En general, este modelo sugiere que la edad y el índice de masa corporal son factores que pueden tener un impacto en el nivel de glucosa en una muestra de sangre de 2 horas. No obstante, es importante tener en cuenta que este modelo solo explica una pequeña parte de la variabilidad del nivel de glucosa y que hay muchos otros factores que podrían afectar a este nivel.
