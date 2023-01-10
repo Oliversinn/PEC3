@@ -260,7 +260,7 @@ prop.table(table(diabetes$Outcome))
 
 Como se sospechaba en la gráfica de barras de `Outcome` presentada previamente, se encuentran 500 (65%) registros de personas sin diabetes y 268 (35%) con la enfermedad.
 
-Debido a que se detecto previamente el problema con la Glucosa ~ Insulina, quisiera saber cuantas de estas personas con Insulina = 0 son personas con la enfermedad y cuantas sin ellas.
+Debido a que se detecto previamente el problema con la `Glucosa ~ Insulina`, quisiera saber cuantas de estas personas con Insulina = 0 son personas con la enfermedad y cuantas sin ellas.
 
 **En las siguientes tablas de frecuencias, la fila TRUE hace referencias a aquellas que tienen la Insulina = 0**
 
@@ -280,7 +280,7 @@ table(diabetes$SkinThickness == 0, diabetes$Outcome)
 prop.table(table(diabetes$SkinThickness == 0, diabetes$Outcome))
 ```
 
-Podemos observar que son menos los registros a los que les falta la medicion de pliegue.
+Podemos observar que son menos los registros a los que les falta la medicion de pliegue comparado con los de insulina.
 
 Como parte final, vere en que proporción los registros no tienen alguna de las dos variables con valor 0.
 
@@ -364,11 +364,19 @@ El F-estadístico del modelo es de 49.33 y el p-valor es menor que 0.001, lo que
 
 En general, este modelo sugiere que la edad y el índice de masa corporal son factores que pueden tener un impacto en el nivel de glucosa en una muestra de sangre de 2 horas. No obstante, es importante tener en cuenta que este modelo solo explica una pequeña parte de la variabilidad del nivel de glucosa y que hay muchos otros factores que podrían afectar a este nivel.
 
-# 6) (1 punto) Realizar, a partir de los conceptos trabajados en el LAB4 y la PEC2, un estudio probabilístico (a elección propia) de al menos 3 de las variables, que ayude a esclarecer cuestiones de relevancia que se plantean en los ámbitos de acción es-tudiados.
+# 6) (1 punto) Realizar, a partir de los conceptos trabajados en el LAB4 y la PEC2, un estudio probabilístico (a elección propia) de al menos 3 de las variables, que ayude a esclarecer cuestiones de relevancia que se plantean en los ámbitos de acción estudiados.
+
+## Niveles de glucosa
 
 Utilizaremos los niveles de Glucosa para este inciso y asumiremos que sigue una distribución normal debido a que tenemos más de 50 registros y podemos aplicar el teorema del limite central.
 
-## Distribución de los datos
+En este dataset para la obtencion de los niveles de glucosa se hizo una prueba de tolerancia. 
+
+En esta prueba los valores de glucosa menores 140 se consideran normales, de 140 a 199 se consideran prediabetico y mayores a 200 indica que se tiene diabetes.
+
+https://www.cdc.gov/diabetes/spanish/basics/getting-tested.html
+
+### Distribución de los datos
 ```{r}
 mu = mean(diabetes_filtrado$Glucose)
 s = sd(diabetes_filtrado$Glucose)
@@ -376,7 +384,73 @@ hist(diabetes_filtrado$Glucose, prob = TRUE, xlab='Glucosa', ylab='Probabilidad'
 curve(dnorm(x, mean = mu, sd = s), from = min(diabetes_filtrado$Glucose) - 30, to = max(diabetes_filtrado$Glucose) + 30, add = TRUE)
 ```
 
+### ¿Cuál es la probabilidad de que un individuo tenga la glucosa por debajo de 140?
 
+```{r}
+pnorm(140, mean = mu , sd = s)
+```
+
+En esta población existe un 71% de probabilidad de tener los niveles de glucosa en un rango normal (menor a 40)
+
+### ¿Cuál es la probabilidad de que un individuo tenga la glucosa entre 140 - 199?
+
+```{r}
+p140 = pnorm(140, mean = mu , sd = s)
+p199 = pnorm(199, mean = mu , sd = s)
+p199 - p140
+```
+
+La probabilidad de tener los niveles de glucosa en un rango prediabetico es del 28 %.
+
+### ¿Cuál es la probabilidad de que una persona tenga la glucosa por encima de 200?
+
+```{r}
+pnorm(200, mean = mu , sd = s, lower.tail = FALSE)
+```
+
+La probabilidad de tener los niveles de glucosa por encima de 200 y considerarse diabetico es del 0.6%. Parece curioso ya que es una probabilidad muy baja. Es importante mencionar que este es un analisis hipotético y que podría alejarse de la realidad.
+
+## Probabilidad de ser diabetico
+
+Se modelara la población del dataset como un evento binomial donde la probabilidad de tener diabetes es de:
+
+```{r}
+p = nrow(diabetes_filtrado[diabetes_filtrado$Outcome == 1, ])/nrow(diabetes_filtrado)
+p
+```
+
+Con esta probabilidad nos plantearemos de que tomaremos una muesta de 10 individuos y queremos contestar a las siguientes interrogantes.
+
+### ¿Cuál es la probabilidad de que todas las personas tengan diabetes?
+
+```{r}
+N = 10
+p_todos = dbinom(N, N, p)
+p_todos
+```
+
+### ¿Cuál es la probabilidad de que ninguna persona tenga diabetes?
+
+```{r}
+p_ninguno = dbinom(0, N, p)
+p_ninguno
+```
+
+### ¿Cuál es la probabilidad de que la mitad de las personas tenga diabetes?
+
+```{r}
+p_mitad = dbinom(N/2, N, p)
+p_mitad
+```
+
+### ¿Cuál es la probabilidad de que almenos 15 personas no tengan diabetes?
+
+```{r}
+p_5 = pbinom(5, N, p)
+p_5
+```
+
+Como la distribución binomial es una distribución continua se puede observar que cuando se busca la probabilidad de un evento en especifico la probabilidad es muy baja, pero cuando se busca una probabilidad del estilo $$P[X<5]$$ la probabilidad aumenta.
 
 # 7) (1,5 puntos) Complementando el apartado anterior, elaborar un análisis ANOVA de dos conjuntos de variables (LAB5). La elección de las variables, los resultados, así como su relación deben de estar correctamente justificada. Además, realizar una prueba clúster de las variables, y si existe un fuerte agrupamiento, elaborar un dendograma (LAB5).
 
