@@ -336,33 +336,36 @@ Aplicando la limpieza de datos nos hemos quedado con `r nrow(diabetes_filtrado)`
 
 Calculamos la matriz de correlación del conjunto de datos y la representación gráfica que muestre la relación de todas las variables.
 
-## Correlación de la base de datos sin limpieza
-```{r}
-corr = cor(diabetes)
-corrplot(corr,method = "number")
-```
-
-## Correlación de la base de datos limpia
-
 ```{r}
 corr = cor(diabetes_filtrado)
+print(corr)
+library(corrplot)
 corrplot(corr,method = "number")
 ```
 
-Para realizar un análisis de regresión de dos conjuntos de variables en el conjunto de datos proporcionado, podemos elegir la edad y el índice de masa corporal como variables independientes y el nivel de glucosa en suero en una muestra de sangre de 2 horas como variable dependiente. Según la matriz de correlación, la edad y el índice de masa corporal tienen una correlación moderada y positiva con el nivel de glucosa en suero en una muestra de sangre de 2 horas, lo que sugiere que estas variables podrían tener un efecto significativo en el nivel de glucosa.
+
+## Glucosa ~ Edad + IMC
+
+Para realizar un análisis de regresión de dos conjuntos de variables en el conjunto de datos proporcionado, podemos elegir la edad y el índice de masa corporal como variables independientes y el nivel de glucosa en suero en una muestra de sangre de 2 horas como variable dependiente. Según la matriz de correlación, la edad y el índice de masa corporal tienen una correlación alta y positiva (0.34 y 0.22 respectivamente) con el nivel de glucosa en suero en una muestra de sangre de 2 horas, lo que sugiere que estas variables podrían tener un efecto significativo en el nivel de glucosa.
 
 ```{r}
-model <- lm(Glucose ~ Age + BMI, data = diabetes)
+model = lm(Glucose ~ Age + BMI, data = diabetes_filtrado)
 summary(model)
 ```
 
-El resultado del modelo de regresión lineal muestra que existe una relación significativa entre el nivel de glucosa en una muestra de sangre de 2 horas y la edad y el índice de masa corporal. Los coeficientes de regresión muestran que, todo lo demás siendo igual, un aumento en la edad y el índice de masa corporal se asocia con un aumento en el nivel de glucosa.
+En este modelo de regresión lineal se está intentando predecir el nivel de Glucosa en sangre en función de la edad y el índice de masa corporal (BMI) de los pacientes. Los resultados indican que existe una relación estadísticamente significativa entre estas variables (p-valor \< 0.05). El coeficiente de Age es 1.0003, lo que significa que a medida que la edad de un paciente aumenta en 1 unidad, se espera que su nivel de Glucosa aumente en 1.0003 unidades. El coeficiente de BMI es 0.8187, lo que significa que a medida que el BMI de un paciente aumenta en 1 unidad, se espera que su nivel de Glucosa aumente en 0.8187 unidades. El R cuadrado es 0.1527, lo que significa que estas dos variables explican el 15.27% de la variación en el nivel de Glucosa. Sin embargo, este modelo es solo una aproximación y es importante tener en cuenta otros factores que pueden influir en el nivel de Glucosa.
 
-El valor de R cuadrado del modelo es de 0.1142, lo que significa que el modelo explica el 11.42% de la variabilidad del nivel de glucosa. El valor de ajustado de R cuadrado es de 0.1119, lo que significa que el modelo explica el 11.19% de la variabilidad del nivel de glucosa una vez se tienen en cuenta el número de variables independientes y el tamaño de la muestra.
+## Glucosa ~ Presion Sanguinea + Insulina + Edad + Diabetes
 
-El F-estadístico del modelo es de 49.33 y el p-valor es menor que 0.001, lo que indica que el modelo es estadísticamente significativo. Esto sugiere que hay una relación significativa entre las variables independientes y la variable dependiente.
+Este segundo modelo lo realizaremos meramente por enfoque estádistica de obtener un modelo con un mejor $R^2$. En este modelo tomaremos en cuenta los niveles de insulina y si el paciente tiene diabetes para medir los niveles de glucosa, lo cual es bastante trivial. Pero con el objetivo de obtener un mejor modelo las tomaremos en cuenta.
 
-En general, este modelo sugiere que la edad y el índice de masa corporal son factores que pueden tener un impacto en el nivel de glucosa en una muestra de sangre de 2 horas. No obstante, es importante tener en cuenta que este modelo solo explica una pequeña parte de la variabilidad del nivel de glucosa y que hay muchos otros factores que podrían afectar a este nivel.
+```{r}
+model2 = lm(Glucose ~ BloodPressure + Insulin + Age + Outcome, data = diabetes_filtrado)
+summary(model2)
+```
+
+Podemos ver que todas las variables aportan significativamente al modelo con al menos 0.05 de significancia. También se observa que en este modelo tenemos un $R^2$ de 0.4785 siendo tres veces mas alto que el del primer modelo generado con solo la Edad e IMC como variables independientes. Si analizamos los interceptos se puede observar que con el hecho de que una persona tenga diabetes le aumentará la medición de glucosa en 21 unidades.
+
 
 # 6) (1 punto) Realizar, a partir de los conceptos trabajados en el LAB4 y la PEC2, un estudio probabilístico (a elección propia) de al menos 3 de las variables, que ayude a esclarecer cuestiones de relevancia que se plantean en los ámbitos de acción estudiados.
 
@@ -443,15 +446,52 @@ p_mitad = dbinom(N/2, N, p)
 p_mitad
 ```
 
-### ¿Cuál es la probabilidad de que almenos 15 personas no tengan diabetes?
+### ¿Cuál es la probabilidad de que almenos 5 personas no tengan diabetes?
 
 ```{r}
 p_5 = pbinom(5, N, p)
 p_5
 ```
 
-Como la distribución binomial es una distribución continua se puede observar que cuando se busca la probabilidad de un evento en especifico la probabilidad es muy baja, pero cuando se busca una probabilidad del estilo $$P[X<5]$$ la probabilidad aumenta.
+Como la distribución binomial es una distribución continua se puede observar que cuando se busca la probabilidad de un evento en especifico la probabilidad es muy baja, pero cuando se busca una probabilidad del estilo $P[X<5]$ la probabilidad aumenta.
 
 # 7) (1,5 puntos) Complementando el apartado anterior, elaborar un análisis ANOVA de dos conjuntos de variables (LAB5). La elección de las variables, los resultados, así como su relación deben de estar correctamente justificada. Además, realizar una prueba clúster de las variables, y si existe un fuerte agrupamiento, elaborar un dendograma (LAB5).
 
-# 8) (1 punto) A partir de los datos de origen y el estudio realizado (incluyendo todos los puntos anteriores), presentar un apartado de conclusiones. Esta sección debe incluir un resumen de los principales resultados obtenidos en apartados anteriores, que ayuden al lector a comprender el ámbito de estudio. Además, se valorará posi-tivamente la coherencia de resultados y las justificaciones presentadas.
+Utilizaré las variables del apartado 5 para realizar el análisis ANOVA ya que son las mas prometedoras de las que tienen un sentido lógico e interpretable.
+
+```{r}
+model = aov(Glucose ~ Age + BMI, data = diabetes_filtrado)
+summary(model)
+
+```
+
+Los resultados del ANOVA muestran que tanto la edad como el índice de masa corporal (BMI) tienen un efecto significativo en la variable dependiente (en este caso, GLucose). Esto se deduce de los valores p muy pequeños y de los asteriscos junto a las variables "Age" y "BMI" en la columna "Pr(\>F)".
+
+El valor F en sí mismo también es significativo, lo que indica que hay una diferencia significativa entre los promedios de la variable dependiente para los diferentes grupos de edad y BMI.
+
+Esto significa que, en general, la edad y el BMI tienen un impacto en la variable dependiente. Sin embargo, es importante tener en cuenta que el ANOVA solo mide la influencia de las variables independientes en conjunto, no la influencia individual de cada variable. Por lo tanto, es posible que necesites realizar más análisis para determinar cuál de estas variables es más importante para el modelo.
+
+Para ver si existe un fuerte agrupamiento entre las variables, puedomos usar ***hclust*** para generar un dendrograma. Esto ayudará a visualizar cómo están relacionadas las variables y si existen subgrupos o clústeres evidentes.
+
+Para generar un dendrograma, primero necesitamos calcular la distancia entre las variables. Lo podemos hacer con la función ***dist***:
+
+```{r}
+distance = dist(diabetes_filtrado[, c("Age", "BMI", "Glucose")])
+cluster = hclust(distance)
+summary(cluster)
+plot(cluster)
+
+```
+
+Los resultados del análisis de clustering muestran que se han agrupado los datos en 392 clusters basándose en la distancia entre ellos. La columna "height" muestra la distancia entre los clusters, lo que nos permite determinar qué tan lejos están unos de otros. La columna "order" muestra el orden en el que se han fusionado los clusters a medida que se ha construido el dendrograma.
+
+
+# 8) (1 punto) A partir de los datos de origen y el estudio realizado (incluyendo todos los puntos anteriores), presentar un apartado de conclusiones. Esta sección debe incluir un resumen de los principales resultados obtenidos en apartados anteriores, que ayuden al lector a comprender el ámbito de estudio. Además, se valorará positivamente la coherencia de resultados y las justificaciones presentadas.
+
+1. En el conjunto de datos de Pima Indian Diabetes EDA no hay datos faltantes en forma de `NA` pero si en forma de mediciones con *ceros* como la medición de glucosa, insulina, pliegues de piel, presión sanguinia e indice de masa corporal.
+2. Las variables que mejor modelan los niveles de glucosa son la edad y el indice de masa corporal (de manera no trivial).
+3. El mejor modelo (aunque trivial) de regresión para glucosa considera a los niveles de insulina, la presión sanguinea, la edad y si una persona tiene o no diabetes.
+4. Los niveles de glucosa siguen una distribución normal con media de `r mu` y desviación estandar `r s`.
+5. Para la población de Pima India la probabilidad de que una persona tenga los niveles de glucosa en un rango normal (<140) es de `r p140`, la probabilidad que tenga los niveles de un prediabetico (140 < x < 200) es de `r p199` y la probabilidad de tener los niveles de glucosa de diabetico es de `r pnorm(200, mean = mu , sd = s, lower.tail = FALSE)`.
+6. De una muestra de 10 personas, la probabilidad de que almenos la mitad de personas tenga diabetes es de `r p_5`.
+7. Con el analisis de ANOVA se obtuvo que las variables de Edad e IMC aportan significativamente al modelo de regresión lineal de Glucosa.
