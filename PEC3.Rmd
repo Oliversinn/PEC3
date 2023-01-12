@@ -49,7 +49,8 @@ pacman::p_load(corrplot,
                 ggplot2,
                 dplyr,
                 sqldf,
-                RSQLite)
+                RSQLite,
+                cluster)
 # lectura de datos
 diabetes = read.csv("data/diabetes.csv")
 ```
@@ -457,6 +458,8 @@ Como la distribución binomial es una distribución continua se puede observar q
 
 # 7) (1,5 puntos) Complementando el apartado anterior, elaborar un análisis ANOVA de dos conjuntos de variables (LAB5). La elección de las variables, los resultados, así como su relación deben de estar correctamente justificada. Además, realizar una prueba clúster de las variables, y si existe un fuerte agrupamiento, elaborar un dendograma (LAB5).
 
+## ANOVA
+
 Utilizaré las variables del apartado 5 para realizar el análisis ANOVA ya que son las mas prometedoras de las que tienen un sentido lógico e interpretable.
 
 ```{r}
@@ -471,19 +474,31 @@ El valor F en sí mismo también es significativo, lo que indica que hay una dif
 
 Esto significa que, en general, la edad y el BMI tienen un impacto en la variable dependiente. Sin embargo, es importante tener en cuenta que el ANOVA solo mide la influencia de las variables independientes en conjunto, no la influencia individual de cada variable. Por lo tanto, es posible que necesites realizar más análisis para determinar cuál de estas variables es más importante para el modelo.
 
-Para ver si existe un fuerte agrupamiento entre las variables, puedomos usar ***hclust*** para generar un dendrograma. Esto ayudará a visualizar cómo están relacionadas las variables y si existen subgrupos o clústeres evidentes.
 
-Para generar un dendrograma, primero necesitamos calcular la distancia entre las variables. Lo podemos hacer con la función ***dist***:
+## Clustering
+
+Para saber en cuantos grupos dividir el dataset utilizaremos el método de Ward usando el gráfico de codo.
 
 ```{r}
-distance = dist(diabetes_filtrado[, c("Age", "BMI", "Glucose")])
-cluster = hclust(distance)
-summary(cluster)
-plot(cluster)
+cluster = diabetes_filtrado[,c('Glucose', 'Age', 'BMI')]
+wss <- (nrow(cluster[,c()])-1)*sum(apply(cluster[,1:ncol(cluster)],2,var))
 
+for (i in 2:10) 
+  wss[i] <- sum(kmeans(cluster[,1:ncol(cluster)], centers=i)$withinss)
+
+plot(1:10, wss, type="b", xlab="Número de grupos",  ylab="Sumatoria de cuadrados")
 ```
 
-Los resultados del análisis de clustering muestran que se han agrupado los datos en 392 clusters basándose en la distancia entre ellos. La columna "height" muestra la distancia entre los clusters, lo que nos permite determinar qué tan lejos están unos de otros. La columna "order" muestra el orden en el que se han fusionado los clusters a medida que se ha construido el dendrograma.
+En el gráfico anterior podemos ver que apartir de los 5 grúpos la diferencia de cuadrados cambia demasiado poco al aumentar la cantidad de grupos asi que agruparemos los datos en 5 grupos distintos. 
+
+```{r}
+hc_div<-diana(diabetes_filtrado[,c('Glucose', 'Age', 'BMI')]) ##calculamos los clústeres jerárquicos
+pltree(hc_div,hang=-1,cex=0.6, main = "Dendograma de la base de datos de Diabetes", ylab = 'Altura', xlab = 'Grupos')
+rect.hclust(hc_div,k=5,border=2:10)
+hc_div$dc ##calculamos el coeficiente de división
+```
+
+Podemos visualizar los 5 grupos generados en el dendograma con un coeficiente de división muy cercano a 1. En este dendograma podemos observar que las primeras dos niveles estan separados entre si. El del lado izquierdo lo divide en los dos grupos más grandes y el de la derecha en tres grupos más pequeños.
 
 
 # 8) (1 punto) A partir de los datos de origen y el estudio realizado (incluyendo todos los puntos anteriores), presentar un apartado de conclusiones. Esta sección debe incluir un resumen de los principales resultados obtenidos en apartados anteriores, que ayuden al lector a comprender el ámbito de estudio. Además, se valorará positivamente la coherencia de resultados y las justificaciones presentadas.
@@ -495,3 +510,4 @@ Los resultados del análisis de clustering muestran que se han agrupado los dato
 5. Para la población de Pima India la probabilidad de que una persona tenga los niveles de glucosa en un rango normal (<140) es de `r p140`, la probabilidad que tenga los niveles de un prediabetico (140 < x < 200) es de `r p199` y la probabilidad de tener los niveles de glucosa de diabetico es de `r pnorm(200, mean = mu , sd = s, lower.tail = FALSE)`.
 6. De una muestra de 10 personas, la probabilidad de que almenos la mitad de personas tenga diabetes es de `r p_5`.
 7. Con el analisis de ANOVA se obtuvo que las variables de Edad e IMC aportan significativamente al modelo de regresión lineal de Glucosa.
+8. Considerando las variables de Glucosa, Edad y IMC el dataset se puede agrupar en 5 grupos.
